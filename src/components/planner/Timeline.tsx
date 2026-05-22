@@ -192,14 +192,14 @@ export function Timeline() {
   const events = schedule.events;
 
   return (
-    <section className="bg-[var(--card-bg)] border border-[var(--line)] rounded-[18px] p-[28px_28px_24px]">
+    <section className="bg-[var(--card-bg)] border border-[var(--line)] rounded-[18px] p-4 sm:p-7">
       {/* Header */}
-      <div className="flex items-start justify-between gap-[16px] mb-[20px]">
+      <div className="flex items-start justify-between gap-3 mb-4 sm:mb-5">
         <div>
-          <h2 className="serif text-[30px] m-0 font-[400] tracking-[-0.01em]">
+          <h2 className="serif text-[24px] sm:text-[30px] m-0 font-[400] tracking-[-0.01em]">
             Tu día, hora por hora
           </h2>
-          <p className="mt-[4px] text-[14px] text-[var(--muted)]">
+          <p className="mt-1 text-[13px] sm:text-[14px] text-[var(--muted)]">
             Las comidas y citas se anclan a su hora. Las tareas llenan los
             huecos en el orden que tú decides.
           </p>
@@ -511,113 +511,95 @@ export function Timeline() {
                   <li
                     key={task.id}
                     className={clsx(
-                      "grid grid-cols-[auto_auto_auto_1fr_auto_auto] items-center gap-[12px] p-[14px_14px_14px_8px] rounded-[12px] transition-[opacity_transform_box-shadow] duration-[200ms]",
+                      "rounded-[12px] transition-[opacity_transform_box-shadow] duration-[200ms]",
+                      // Layout: flex en móvil, grid en sm+
+                      "flex flex-col gap-2 p-3",
+                      "sm:grid sm:grid-cols-[auto_auto_auto_1fr_auto_auto] sm:items-center sm:gap-3 sm:p-[14px_14px_14px_8px]",
                       isNow
-                        ? "bg-[var(--card-bg)] border-[1px] border-[var(--accent)] shadow-[0_0_0_2px_var(--accent)_0_0_0_6px_var(--accent-soft)]"
+                        ? "bg-[var(--card-bg)] border border-[var(--accent)] shadow-[0_0_0_2px_var(--accent-soft)]"
                         : "bg-[var(--bg)]",
-                      task.overlap && !isNow
-                        ? "border-[1px] border-[var(--accent)]"
-                        : !isNow
-                          ? "border-[1px] border-[var(--line)]"
-                          : "",
+                      task.overlap && !isNow ? "border border-[var(--accent)]"
+                        : !isNow ? "border border-[var(--line)]" : "",
                       isDragging && "opacity-[0.35] scale-[0.99]",
                       isPast && !isDragging && "opacity-[0.55]",
                       task.done && "opacity-60",
                     )}
                     onDragOver={(e) => handleDragOverTask(e, taskIdx)}
                   >
-                    <div
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, taskIdx)}
-                      onDragEnd={reset}
-                      aria-label="Arrastrar para reordenar"
-                      className="w-[22px] h-[36px] flex items-center justify-center text-[var(--muted)] rounded-[6px] cursor-grab select-none"
-                    >
-                      <GripIcon />
-                    </div>
+                    {/* ── Fila superior (móvil: toda la tarjeta; sm: columnas 1-3 + nombre) ── */}
+                    <div className="flex items-center gap-2 min-w-0 sm:contents">
 
-                    <button
-                      onClick={() => toggleTaskDone(task.id)}
-                      aria-label={task.done ? 'Marcar pendiente' : 'Marcar como hecho'}
-                      className={`w-[20px] h-[20px] rounded-full border-2 flex items-center justify-center text-[9px] flex-shrink-0 transition-colors ${
-                        task.done
-                          ? 'bg-[var(--good)] border-[var(--good)] text-white'
-                          : 'border-[var(--line)] bg-transparent text-transparent hover:border-[var(--muted)]'
-                      }`}
-                    >✓</button>
-
-                    <div className="mono text-[12px] font-[500] text-[var(--muted)]">
-                      {isPast ? "✓" : String(taskIdx + 1).padStart(2, "0")}
-                    </div>
-
-                    <div className="flex flex-col gap-[4px] min-w-0">
-                      <div className="flex flex-wrap items-center gap-[10px]">
-                        <input
-                          value={task.name}
-                          onChange={(e) =>
-                            updateTask(task.id, { name: e.target.value })
-                          }
-                          className={`border-none bg-transparent p-0 text-[16px] font-[500] min-w-0 max-w-full outline-none ${
-                            task.done ? 'line-through text-[var(--muted)]' : 'text-[var(--ink)]'
-                          }`}
-                        />
-                        {isNow && <NowChip />}
+                      {/* Grip */}
+                      <div
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, taskIdx)}
+                        onDragEnd={reset}
+                        aria-label="Arrastrar para reordenar"
+                        className="w-5 h-8 flex items-center justify-center text-[var(--muted)] rounded-[6px] cursor-grab select-none flex-shrink-0"
+                      >
+                        <GripIcon />
                       </div>
-                      <div className="flex flex-wrap items-center gap-[6px] text-[13px]">
-                        <span
-                          className={clsx(
-                            "mono",
-                            overflow
-                              ? "text-[var(--warn)]"
-                              : "text-[var(--ink-2)]",
-                          )}
-                        >
-                          {minToClock(task.startAt)} → {minToClock(task.endAt)}
-                        </span>
-                        <span className="text-[var(--line)]">·</span>
-                        <button
-                          onClick={() =>
-                            setEditingId(editingId === task.id ? null : task.id)
-                          }
-                          className={clsx(
-                            "inline-flex items-center gap-[2px] rounded-full px-[8px] py-[3px] text-[12px] leading-[1.4]",
-                            editingId === task.id
-                              ? "border border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]"
-                              : "border border-[var(--line)] bg-transparent text-[var(--muted)]",
-                          )}
-                        >
-                          <span className="mono">
-                            {fmtMinutes(task.duration)}
+
+                      {/* Done checkbox */}
+                      <button
+                        onClick={() => toggleTaskDone(task.id)}
+                        aria-label={task.done ? 'Marcar pendiente' : 'Marcar como hecho'}
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center text-[9px] flex-shrink-0 transition-colors ${
+                          task.done
+                            ? 'bg-[var(--good)] border-[var(--good)] text-white'
+                            : 'border-[var(--line)] bg-transparent text-transparent hover:border-[var(--muted)]'
+                        }`}
+                      >✓</button>
+
+                      {/* Número — oculto en móvil */}
+                      <div className="hidden sm:block mono text-[12px] font-[500] text-[var(--muted)]">
+                        {isPast ? "✓" : String(taskIdx + 1).padStart(2, "0")}
+                      </div>
+
+                      {/* Nombre + chips */}
+                      <div className="flex flex-col gap-1 min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <input
+                            value={task.name}
+                            onChange={(e) => updateTask(task.id, { name: e.target.value })}
+                            className={`border-none bg-transparent p-0 text-[15px] sm:text-[16px] font-[500] min-w-0 max-w-full outline-none ${
+                              task.done ? 'line-through text-[var(--muted)]' : 'text-[var(--ink)]'
+                            }`}
+                          />
+                          {isNow && <NowChip />}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-[5px] text-[12px] sm:text-[13px]">
+                          <span className={clsx("mono", overflow ? "text-[var(--warn)]" : "text-[var(--ink-2)]")}>
+                            {minToClock(task.startAt)} → {minToClock(task.endAt)}
                           </span>
-                          <svg
-                            width="10"
-                            height="10"
-                            viewBox="0 0 10 10"
-                            className="ml-[4px] opacity-[0.7]"
+                          <span className="text-[var(--line)]">·</span>
+                          <button
+                            onClick={() => setEditingId(editingId === task.id ? null : task.id)}
+                            className={clsx(
+                              "inline-flex items-center gap-[2px] rounded-full px-2 py-[2px] text-[11px] leading-[1.4]",
+                              editingId === task.id
+                                ? "border border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]"
+                                : "border border-[var(--line)] bg-transparent text-[var(--muted)]",
+                            )}
                           >
-                            <path
-                              d="M2 3.5 L5 6.5 L8 3.5"
-                              stroke="currentColor"
-                              strokeWidth="1.3"
-                              fill="none"
-                              strokeLinecap="round"
-                            />
-                          </svg>
-                        </button>
-                        {task.subtasks.length > 0 && (
-                          <>
-                            <span className="text-[var(--line)]">·</span>
-                            <span className="mono text-[11px] font-[500] rounded-full bg-[var(--accent-soft)] text-[var(--accent)] px-[8px] py-[2px]">
-                              {task.subtasks.length} sub-tareas
-                            </span>
-                          </>
-                        )}
-                        {task.overlap && (
-                          <>
-                            <span className="text-(--line)">·</span>
-                            <button
-                              onClick={() =>
-                                setConflictModal({
+                            <span className="mono">{fmtMinutes(task.duration)}</span>
+                            <svg width="10" height="10" viewBox="0 0 10 10" className="ml-1 opacity-70">
+                              <path d="M2 3.5 L5 6.5 L8 3.5" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+                            </svg>
+                          </button>
+                          {task.subtasks.length > 0 && (
+                            <>
+                              <span className="text-[var(--line)]">·</span>
+                              <span className="mono text-[11px] font-[500] rounded-full bg-[var(--accent-soft)] text-[var(--accent)] px-2 py-[2px]">
+                                {task.subtasks.length} sub-tareas
+                              </span>
+                            </>
+                          )}
+                          {task.overlap && (
+                            <>
+                              <span className="text-(--line)">·</span>
+                              <button
+                                onClick={() => setConflictModal({
                                   taskId: task.id,
                                   taskName: task.name,
                                   taskStartAt: task.startAt,
@@ -625,65 +607,49 @@ export function Timeline() {
                                   eventLabel: task.overlap!.label,
                                   eventKind: task.overlap!.kind,
                                   currentDuration: task.duration,
-                                })
-                              }
-                              className="rounded-full bg-(--accent-soft) text-(--warn) px-2 py-0.5 text-[11px] font-medium
-                                         underline underline-offset-2 decoration-dotted cursor-pointer"
-                            >
-                              ⚠ roba {fmtMinutes(task.overlap.stealMin)} de{" "}
-                              {task.overlap.label}
-                            </button>
-                          </>
-                        )}
-                        {overflow && (
-                          <>
-                            <span className="text-[var(--line)]">·</span>
-                            <span className="rounded-full bg-[var(--accent-soft)] text-[var(--warn)] px-[8px] py-[2px] text-[11px] font-[500]">
-                              se pasa del día
-                            </span>
-                          </>
+                                })}
+                                className="rounded-full bg-(--accent-soft) text-(--warn) px-2 py-0.5 text-[11px] font-medium underline underline-offset-2 decoration-dotted cursor-pointer"
+                              >
+                                ⚠ roba {fmtMinutes(task.overlap.stealMin)} de {task.overlap.label}
+                              </button>
+                            </>
+                          )}
+                          {overflow && (
+                            <>
+                              <span className="text-[var(--line)]">·</span>
+                              <span className="rounded-full bg-[var(--accent-soft)] text-[var(--warn)] px-2 py-[2px] text-[11px] font-[500]">
+                                se pasa del día
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        {editingId === task.id && (
+                          <DurationEditor
+                            ev={task}
+                            onChange={(newDur) => updateTask(task.id, { duration: newDur })}
+                            onClose={() => setEditingId(null)}
+                          />
                         )}
                       </div>
-                      {editingId === task.id && (
-                        <DurationEditor
-                          ev={task}
-                          onChange={(newDur) =>
-                            updateTask(task.id, { duration: newDur })
-                          }
-                          onClose={() => setEditingId(null)}
-                        />
-                      )}
+
+                      {/* Abrir + borrar (en móvil van pegados al nombre a la derecha) */}
+                      <div className="flex items-center gap-1 flex-shrink-0 sm:contents">
+                        <button
+                          onClick={() => router.push(`/task/${task.id}`)}
+                          className="inline-flex items-center rounded-full border border-[var(--line)] bg-transparent px-2 sm:px-3 py-1.5 text-[12px] font-medium text-[var(--ink-2)] cursor-pointer"
+                        >
+                          <span className="hidden sm:inline mr-1.5">Abrir</span>
+                          <svg width="12" height="12" viewBox="0 0 12 12">
+                            <path d="M3 6h6 M6.5 3.5L9 6l-2.5 2.5" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => removeTask(task.id)}
+                          aria-label="Eliminar"
+                          className="w-7 h-7 rounded-[8px] bg-transparent text-[var(--muted)] border border-transparent text-[13px] flex items-center justify-center"
+                        >✕</button>
+                      </div>
                     </div>
-
-                    <button
-                      onClick={() => router.push(`/task/${task.id}`)}
-                      className="inline-flex items-center whitespace-nowrap rounded-full border border-gray-400 bg-transparent px-3 py-1.5 text-[12px] font-medium text-black cursor-pointer"
-                    >
-                      Abrir
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 12 12"
-                        className="ml-[6px]"
-                      >
-                        <path
-                          d="M3 6h6 M6.5 3.5L9 6l-2.5 2.5"
-                          stroke="currentColor"
-                          strokeWidth="1.4"
-                          fill="none"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </button>
-
-                    <button
-                      onClick={() => removeTask(task.id)}
-                      aria-label="Eliminar"
-                      className="w-[30px] h-[30px] rounded-[8px] bg-transparent text-[var(--muted)] border border-transparent text-[13px]"
-                    >
-                      ✕
-                    </button>
                   </li>,
                 );
 

@@ -162,7 +162,7 @@ export function Calendar() {
       </div>
 
       {/* ── Info del día + acciones ─────────────────────────────────────── */}
-      <div className="border-t border-(--line) pt-4 flex items-center justify-between gap-4 min-h-[52px]">
+      <div className="border-t border-(--line) pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
           <div className="text-[11px] text-(--muted) tracking-[0.08em] uppercase">
             Día seleccionado

@@ -16,7 +16,7 @@ export default function Home() {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
-    <main className="max-w-[1080px] mx-auto py-[32px] px-[28px] pb-[80px] flex flex-col gap-[24px]">
+    <main className="max-w-[1080px] mx-auto py-5 sm:py-8 px-4 sm:px-7 pb-20 flex flex-col gap-4 sm:gap-6">
       <DayHeader />
       <Calendar />
       <LiveBanner onOpenTask={id => router.push(`/task/${id}`)} />

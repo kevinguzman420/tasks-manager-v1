@@ -47,22 +47,22 @@ export function LiveBanner({ onOpenTask }: { onOpenTask: (id: string) => void })
   if (!currentEvent) return null;
 
   const { ev, n } = currentEvent;
-  const elapsed  = Math.max(0, n - ev.startAt);
+  const elapsed   = Math.max(0, n - ev.startAt);
   const remaining = Math.max(0, ev.endAt - n);
-  const total = ev.endAt - ev.startAt;
-  const pct = Math.max(0, Math.min(100, (elapsed / Math.max(1, total)) * 100));
-  const isTask = ev.kind === 'task';
+  const total     = ev.endAt - ev.startAt;
+  const pct       = Math.max(0, Math.min(100, (elapsed / Math.max(1, total)) * 100));
+  const isTask    = ev.kind === 'task';
 
   const label = isTask
     ? 'Actualmente estás en'
     : `Es hora de tu ${(ev as any).label?.toLowerCase()}`;
 
   return (
-    <section className="bg-[var(--ink)] text-[var(--bg)] rounded-[18px] px-[24px] py-[20px] flex gap-[20px] items-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+    <section className="bg-[var(--ink)] text-[var(--bg)] rounded-[18px] px-4 py-4 sm:px-6 sm:py-5 flex gap-4 items-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
       {/* Pulse dot */}
-      <div className="relative flex items-center justify-center flex-shrink-0 w-[36px] h-[36px]">
+      <div className="relative flex items-center justify-center flex-shrink-0 w-8 h-8">
         <span className="pulse-ring absolute inset-0 rounded-full bg-[var(--accent)] opacity-[0.35]" />
-        <span className="block w-[12px] h-[12px] rounded-full bg-[var(--accent)]" style={{ boxShadow: '0 0 0 4px rgba(200,100,58,0.25)' }} />
+        <span className="block w-3 h-3 rounded-full bg-[var(--accent)]" style={{ boxShadow: '0 0 0 4px rgba(200,100,58,0.25)' }} />
       </div>
 
       {/* Content */}
@@ -70,31 +70,28 @@ export function LiveBanner({ onOpenTask }: { onOpenTask: (id: string) => void })
         <div className="text-[10px] font-[600] text-[var(--accent)] uppercase tracking-[0.12em]">
           ● EN VIVO · {label}
         </div>
-        <div className="serif text-[28px] leading-[1.1] mt-[2px] text-[var(--bg)] tracking-[-0.01em]">
+        <div className="serif text-[20px] sm:text-[28px] leading-[1.1] mt-[2px] text-[var(--bg)] tracking-[-0.01em] truncate">
           {isTask ? ev.name : `${(ev as any).emoji} ${(ev as any).label}`}
         </div>
-        <div className="mono text-[13px] text-[rgba(250,247,242,0.65)] mt-[6px] flex flex-wrap items-center gap-[10px]">
+        <div className="mono text-[12px] text-[rgba(250,247,242,0.65)] mt-1 flex flex-wrap items-center gap-2">
           <span>{minToClock(ev.startAt)} → {minToClock(ev.endAt)}</span>
           <span className="text-[rgba(250,247,242,0.3)]">·</span>
           <span>Terminas en <b className="text-[var(--bg)]">{fmtMinutes(remaining)}</b></span>
         </div>
-        <div className="mt-[12px] h-[4px] rounded-full bg-[rgba(255,255,255,0.12)] overflow-hidden">
+        <div className="mt-2 h-[4px] rounded-full bg-[rgba(255,255,255,0.12)] overflow-hidden">
           <div className="h-full bg-[var(--accent)] transition-[width] duration-[800ms] ease" style={{ width: `${pct}%` }} />
         </div>
       </div>
 
-      {/* Open button for tasks */}
+      {/* Abrir — solo para tareas */}
       {isTask && (
         <button
           onClick={() => onOpenTask(ev.id)}
-          className="inline-flex items-center self-center whitespace-nowrap rounded-full border border-[rgba(255,255,255,0.15)] bg-[rgba(255,255,255,0.08)] px-[14px] py-[8px] text-[13px] font-[500] text-[var(--bg)] cursor-pointer"
+          className="inline-flex items-center self-center flex-shrink-0 rounded-full border border-[rgba(255,255,255,0.15)] bg-[rgba(255,255,255,0.08)] px-3 py-2 text-[13px] font-[500] text-[var(--bg)] cursor-pointer"
         >
-          Abrirs
-          <svg width="12" height="12" viewBox="0 0 12 12" className="ml-[6px]">
-            <path
-              d="M3 6h6 M6.5 3.5L9 6l-2.5 2.5"
-              stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round"
-            />
+          <span className="hidden sm:inline mr-1.5">Abrir</span>
+          <svg width="12" height="12" viewBox="0 0 12 12">
+            <path d="M3 6h6 M6.5 3.5L9 6l-2.5 2.5" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
       )}
