@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Fondo con esquinas redondeadas -->
+  <rect width="512" height="512" rx="112" fill="#1b1712"/>
+
+  <!-- Indicador de hora (línea vertical izquierda) -->
+  <rect x="88" y="130" width="10" height="252" rx="5" fill="#faf9f7" opacity="0.18"/>
+
+  <!-- Bloques de tiempo -->
+  <rect x="116" y="134" width="308" height="38" rx="9" fill="#faf9f7" opacity="0.12"/>
+  <rect x="116" y="184" width="308" height="38" rx="9" fill="#faf9f7" opacity="0.12"/>
+
+  <!-- Bloque "ahora" en naranja -->
+  <rect x="116" y="234" width="308" height="44" rx="10" fill="#c8643a"/>
+  <!-- Punto naranja izquierdo del bloque actual -->
+  <circle cx="76" cy="256" r="11" fill="#c8643a"/>
+
+  <rect x="116" y="290" width="232" height="38" rx="9" fill="#faf9f7" opacity="0.12"/>
+  <rect x="116" y="340" width="268" height="38" rx="9" fill="#faf9f7" opacity="0.12"/>
+</svg>

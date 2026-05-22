@@ -1,66 +1,60 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client';
+
+import React, { useState } from 'react';
+import { DayHeader } from '@/components/planner/DayHeader';
+import { Calendar } from '@/components/planner/Calendar';
+import { DayLimits } from '@/components/planner/DayLimits';
+import { MealSettings } from '@/components/planner/MealSettings';
+import { AppointmentSettings } from '@/components/planner/AppointmentSettings';
+import { RemainCard } from '@/components/planner/RemainCard';
+import { LiveBanner } from '@/components/planner/LiveBanner';
+import { Timeline } from '@/components/planner/Timeline';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
+  const router = useRouter();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.tsx file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <main className="max-w-[1080px] mx-auto py-[32px] px-[28px] pb-[80px] flex flex-col gap-[24px]">
+      <DayHeader />
+      <Calendar />
+      <LiveBanner onOpenTask={id => router.push(`/task/${id}`)} />
+      <Timeline />
+      <RemainCard />
+
+      {/* Configurar día — collapsible */}
+      <div className="flex flex-col gap-[16px]">
+        <button
+          onClick={() => setSettingsOpen(o => !o)}
+          className="flex items-center justify-between w-full rounded-[14px] border border-[var(--line)] bg-[var(--card-bg)] px-[20px] py-[14px] text-left"
+        >
+          <div className="flex items-center gap-[10px]">
+            <span className="text-[18px]">⚙</span>
+            <span className="text-[15px] font-[500] text-[var(--ink)]">Configurar día</span>
+            <span className="text-[13px] text-[var(--muted)]">Límites, comidas y citas</span>
+          </div>
+          <svg
+            width="16" height="16" viewBox="0 0 16 16" fill="none"
+            className={`transition-transform duration-200 ${settingsOpen ? 'rotate-180' : ''}`}
           >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+            <path d="M3 5.5L8 10.5L13 5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+
+        {settingsOpen && (
+          <div className="flex flex-col gap-[16px]">
+            <DayLimits />
+            <MealSettings />
+            <AppointmentSettings />
+          </div>
+        )}
+      </div>
+
+      <footer className="text-[13px] text-[var(--ink-2)] text-center mt-[12px]">
+        <span className="text-[var(--muted)]">Versión 0.1 ·</span>{' '}
+        Diseña tu día, un bloque a la vez.
+      </footer>
+    </main>
   );
 }
