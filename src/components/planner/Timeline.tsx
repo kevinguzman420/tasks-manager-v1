@@ -718,6 +718,7 @@ function Stepper({
   max,
   suffix = '',
   format,
+  className,
 }: {
   value: number;
   onChange: (v: number) => void;
@@ -726,27 +727,28 @@ function Stepper({
   max: number;
   suffix?: string;
   format?: (v: number) => string;
+  className?: string;
 }) {
   return (
-    <div className="inline-flex items-center bg-[var(--bg)] border border-[var(--line)] rounded-[10px] overflow-hidden">
+    <div className={clsx("inline-flex items-center justify-between bg-[var(--bg)] border border-[var(--line)] rounded-[10px] overflow-hidden", className)}>
       <button
         type="button"
         onClick={() => onChange(Math.max(min, value - step))}
         aria-label="Restar"
-        className="w-[36px] h-[40px] bg-transparent border-none text-[var(--ink-2)] text-[18px] leading-[1] inline-flex items-center justify-center"
+        className="w-[36px] h-[40px] bg-transparent border-none text-[var(--ink-2)] text-[18px] leading-[1] inline-flex items-center justify-center flex-shrink-0 cursor-pointer hover:bg-[var(--line)]/10 transition-colors"
       >
         −
       </button>
-      <div className="mono min-w-[80px] text-center text-[16px] text-[var(--ink)] border-x border-[var(--line)] px-[8px] py-[10px]">
+      <div className="mono flex-1 min-w-[50px] xs:min-w-[70px] sm:min-w-[80px] text-center text-[15px] sm:text-[16px] text-[var(--ink)] border-x border-[var(--line)] px-[4px] xs:px-[8px] py-[10px]">
         {format ? format(value) : (
-          <>{value}{suffix && <span className="text-[var(--muted)] ml-[4px] text-[13px]">{suffix}</span>}</>
+          <>{value}{suffix && <span className="text-[var(--muted)] ml-[4px] text-[12px] sm:text-[13px]">{suffix}</span>}</>
         )}
       </div>
       <button
         type="button"
         onClick={() => onChange(Math.min(max, value + step))}
         aria-label="Sumar"
-        className="w-[36px] h-[40px] bg-transparent border-none text-[var(--ink-2)] text-[18px] leading-[1] inline-flex items-center justify-center"
+        className="w-[36px] h-[40px] bg-transparent border-none text-[var(--ink-2)] text-[18px] leading-[1] inline-flex items-center justify-center flex-shrink-0 cursor-pointer hover:bg-[var(--line)]/10 transition-colors"
       >
         +
       </button>
@@ -793,21 +795,21 @@ function DurationEditor({
   })();
 
   return (
-    <div className="mt-[10px] p-[14px] rounded-[12px] bg-[var(--card-bg)] border border-[var(--line)] flex flex-col gap-[14px]">
-      <div className="flex gap-[16px] items-end">
-        <div className="flex-1">
+    <div className="mt-[10px] p-[10px] xs:p-[14px] rounded-[12px] bg-[var(--card-bg)] border border-[var(--line)] flex flex-col gap-[12px] xs:gap-[14px]">
+      <div className="flex flex-row items-center gap-[8px] sm:gap-[16px]">
+        <div className="flex-1 min-w-0">
           <div className="text-[10px] text-[var(--muted)] tracking-[0.06em] uppercase mb-[4px]">
             Inicia
           </div>
-          <div className="mono text-[16px] text-[var(--muted)] p-[9px_12px] border border-dashed border-[var(--line)] rounded-[10px] bg-[var(--bg)]">
+          <div className="mono text-[14px] xs:text-[16px] text-[var(--muted)] p-[8px_10px] xs:p-[9px_12px] border border-dashed border-[var(--line)] rounded-[10px] bg-[var(--bg)] text-center">
             {minToClock(ev.startAt)}
           </div>
-          <div className="text-[10px] text-[var(--muted)] mt-[2px]">
+          <div className="text-[9px] xs:text-[10px] text-[var(--muted)] mt-[2px] text-center truncate">
             depende del orden
           </div>
         </div>
-        <div className="text-[18px] text-[var(--muted)] pb-[12px]">→</div>
-        <div className="flex-1">
+        <div className="text-[16px] xs:text-[18px] text-[var(--muted)] self-center pt-[18px]">→</div>
+        <div className="flex-1 min-w-0">
           <div className="text-[10px] text-[var(--muted)] tracking-[0.06em] uppercase mb-[4px]">
             Termina
           </div>
@@ -815,16 +817,16 @@ function DurationEditor({
             type="time"
             value={endTimeValue}
             onChange={(e) => handleEndChange(e.target.value)}
-            className="mono w-full appearance-none bg-[var(--bg)] border border-[var(--line)] rounded-[10px] px-[12px] py-[10px] text-[16px] text-[var(--ink)] outline-none"
+            className="mono w-full text-center appearance-none bg-[var(--bg)] border border-[var(--line)] rounded-[10px] px-[8px] xs:px-[12px] py-[8px] xs:py-[10px] text-[14px] xs:text-[16px] text-[var(--ink)] outline-none"
           />
         </div>
       </div>
-      <div className="flex gap-[16px] items-end">
-        <div className="flex-1">
-          <div className="text-[10px] text-[var(--muted)] tracking-[0.06em] uppercase mb-[4px]">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-[14px]">
+        <div className="flex-1 w-full">
+          <div className="text-[10px] text-[var(--muted)] tracking-[0.06em] uppercase mb-[6px]">
             Duración
           </div>
-          <div className="flex gap-[8px]">
+          <div className="flex gap-[8px] w-full">
             <Stepper
               value={hh}
               onChange={(v) => apply(v, mm)}
@@ -832,6 +834,7 @@ function DurationEditor({
               min={0}
               max={12}
               suffix="h"
+              className="flex-1 w-full"
             />
             <Stepper
               value={mm}
@@ -840,12 +843,13 @@ function DurationEditor({
               min={0}
               max={55}
               suffix="min"
+              className="flex-1 w-full"
             />
           </div>
         </div>
         <button
           onClick={onClose}
-          className="rounded-[10px] bg-[var(--ink)] text-[var(--bg)] px-[18px] py-[10px] text-[13px] font-[500] h-[40px]"
+          className="w-full sm:w-auto rounded-[10px] bg-[var(--ink)] text-[var(--bg)] px-[18px] py-[10px] text-[13px] font-[500] h-[40px] flex items-center justify-center cursor-pointer hover:opacity-90 active:scale-[0.98] transition-all"
         >
           Listo
         </button>
