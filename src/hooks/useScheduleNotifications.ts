@@ -67,8 +67,8 @@ export async function fireTestNotification(schedule?: Schedule): Promise<void> {
 
   await showNotif(title, {
     body,
-    icon: '/icons/icon.svg',
-    badge: '/icons/icon.svg',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/badge-96.png',
     tag: 'diario-planeador-test',
   });
 }
@@ -131,8 +131,8 @@ export function useScheduleNotifications(
           // fire-and-forget (no await en setInterval)
           showNotif(title, {
             body,
-            icon: '/icons/icon.svg',
-            badge: '/icons/icon.svg',
+            icon: '/icons/icon-192.png',
+            badge: '/icons/badge-96.png',
             tag: `diario-planeador-${key}`,
           });
         }
