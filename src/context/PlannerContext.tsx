@@ -141,9 +141,20 @@ export function PlannerProvider({ children }: { children: React.ReactNode }) {
     [plans, selectedKey]
   );
 
-  const schedule = useMemo<Schedule>(() => computeSchedule(plan), [plan]);
-
   const selectedDate = useMemo(() => parseKey(selectedKey), [selectedKey]);
+
+  const schedule = useMemo<Schedule>(() => {
+    // Cuando se ve "hoy", pasamos la hora actual para que las tareas
+    // no se coloquen en el pasado (nowMin floor).
+    const isToday =
+      selectedDate.getFullYear() === today.getFullYear() &&
+      selectedDate.getMonth()    === today.getMonth()    &&
+      selectedDate.getDate()     === today.getDate();
+    if (!isToday) return computeSchedule(plan);
+    const d = new Date();
+    const nowMin = d.getHours() * 60 + d.getMinutes();
+    return computeSchedule(plan, nowMin);
+  }, [plan, selectedDate, today]);
 
   const updatePlan = useCallback((patch: Partial<DayPlan>) => {
     setPlans(prev => ({

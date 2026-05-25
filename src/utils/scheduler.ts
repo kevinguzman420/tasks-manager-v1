@@ -108,7 +108,12 @@ export function parseDuration(raw: string): number | null {
   return null;
 }
 
-export function computeSchedule(plan: DayPlan): Schedule {
+/**
+ * @param nowMin  Si se pasa (solo cuando se ve "hoy"), el scheduler NO coloca
+ *                tareas en el pasado. Vacía los eventos fijos pasados a su hora
+ *                real y avanza el cursor al momento actual antes de insertar tareas.
+ */
+export function computeSchedule(plan: DayPlan, nowMin?: number): Schedule {
   const { start, end, meals, tasks, appointments = [] } = plan;
   const startMin = timeToMin(start);
   const totalDay = dayMinutes(start, end);
@@ -179,6 +184,15 @@ export function computeSchedule(plan: DayPlan): Schedule {
       c = at + f.duration;
     }
   };
+
+  // ── "Now floor": evitar colocar tareas en el pasado ─────────────────────────
+  // Si nowMin está definido (vista de hoy), primero vaciamos los eventos fijos
+  // que ya ocurrieron (quedan en su hora real) y luego adelantamos el cursor
+  // al momento actual, para que las tareas pendientes partan desde ahora.
+  if (nowMin !== undefined) {
+    flushFixed(nowMin);          // fijos pasados → aparecen a su hora configurada
+    c = Math.max(c, nowMin);     // cursor nunca retrocede al pasado
+  }
 
   for (const task of tasks) {
     flushFixed(c);
