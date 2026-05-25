@@ -12,7 +12,7 @@ import {
 } from "@/utils/scheduler";
 import { ScheduleEvent, MealEvent, AppointmentEvent, TaskEvent } from "@/types";
 import { useRouter } from "next/navigation";
-import { useScheduleNotifications } from "@/hooks/useScheduleNotifications";
+import { useScheduleNotifications, fireTestNotification } from "@/hooks/useScheduleNotifications";
 
 function sameDay(a: Date, b: Date) {
   return (
@@ -169,6 +169,14 @@ export function Timeline() {
               className="mt-[8px] inline-flex items-center gap-[5px] rounded-full border border-[var(--line)] bg-[var(--bg)] px-[10px] py-[5px] text-[12px] text-[var(--ink-2)] hover:border-[var(--ink-2)] hover:text-[var(--ink)] transition-colors"
             >
               <span>🔔</span> Activar avisos del día
+            </button>
+          )}
+          {notifPerm === 'granted' && (
+            <button
+              onClick={() => fireTestNotification(schedule)}
+              className="mt-[8px] inline-flex items-center gap-[5px] rounded-full border border-[var(--line)] bg-[var(--bg)] px-[10px] py-[5px] text-[12px] text-[var(--ink-2)] hover:border-[var(--ink-2)] hover:text-[var(--ink)] transition-colors"
+            >
+              <span>🔔</span> Probar aviso
             </button>
           )}
           {notifPerm === 'denied' && (

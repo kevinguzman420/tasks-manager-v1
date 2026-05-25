@@ -15,6 +15,35 @@ function buildNotification(ev: ScheduleEvent): { title: string; body: string } {
 }
 
 /**
+ * Dispara una notificación de prueba de inmediato para que el usuario
+ * pueda ver cómo se ve. Usa el primer evento futuro del schedule si existe,
+ * o un ejemplo genérico si no hay ninguno.
+ */
+export function fireTestNotification(schedule?: Schedule): void {
+  if (typeof window === 'undefined' || !('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
+
+  const d      = new Date();
+  const nowMin = d.getHours() * 60 + d.getMinutes();
+
+  // Intentar usar el próximo evento real como ejemplo
+  const nextEv = schedule?.events.find(ev => ev.startAt > nowMin);
+
+  const title = nextEv ? buildNotification(nextEv).title : '⏱ Sesión de trabajo';
+  const body  = nextEv
+    ? `Empieza a las ${String(Math.floor(nextEv.startAt / 60)).padStart(2,'0')}:${String(nextEv.startAt % 60).padStart(2,'0')} · ${fmtMinutes(nextEv.duration)}`
+    : 'Así se verán los avisos del Planeador cuando empiece un evento 📋';
+
+  try {
+    new Notification(title, {
+      body,
+      icon: '/icons/icon.svg',
+      tag: 'diario-planeador-test',
+    });
+  } catch { /* browser puede bloquear */ }
+}
+
+/**
  * Dispara notificaciones del sistema cuando un evento del schedule empieza.
  *
  * - Solo actúa cuando `isToday === true` y el permiso está concedido.
@@ -60,10 +89,13 @@ export function useScheduleNotifications(
         return; // El primer aviso llegará en el próximo evento futuro
       }
 
-      // Detectar eventos que empiezan exactamente en este minuto
+      // Detectar eventos que ya empezaron pero aún no se notificaron.
+      // Usamos <= en lugar de === para no perder el aviso si el interval
+      // se disparó un minuto tarde (race condition del setInterval).
+      // notifiedRef evita avisos duplicados.
       scheduleRef.current.events.forEach(ev => {
         const key = eventKey(ev);
-        if (ev.startAt === nowMin && !notifiedRef.current.has(key)) {
+        if (ev.startAt <= nowMin && !notifiedRef.current.has(key)) {
           notifiedRef.current.add(key);
           const { title, body } = buildNotification(ev);
           try {
