@@ -66,11 +66,13 @@ export function findConflict(
   const endAt = startAt + duration;
 
   const allFixed = [
-    ...(Object.entries(plan.meals) as [keyof typeof MEAL_META, MealConfig][]).map(([id, m]) => {
-      let at = timeToMin(m.at);
-      if (at < startMin) at += 1440;
-      return { kind: 'meal' as const, label: MEAL_META[id].label, at };
-    }),
+    ...(Object.entries(plan.meals) as [keyof typeof MEAL_META, MealConfig][])
+      .filter(([, m]) => m.enabled !== false)
+      .map(([id, m]) => {
+        let at = timeToMin(m.at);
+        if (at < startMin) at += 1440;
+        return { kind: 'meal' as const, label: MEAL_META[id].label, at };
+      }),
     ...(plan.appointments ?? []).map(a => {
       let at = timeToMin(a.at);
       if (at < startMin) at += 1440;
@@ -114,6 +116,7 @@ export function computeSchedule(plan: DayPlan): Schedule {
   // ── Construir cola de eventos fijos ─────────────────────────────────────────
 
   const mealItems: FixedItem[] = (Object.entries(meals) as [keyof typeof MEAL_META, MealConfig][])
+    .filter(([, m]) => m.enabled !== false)
     .map(([id, m]) => {
       let at = timeToMin(m.at);
       if (at < startMin) at += 1440;

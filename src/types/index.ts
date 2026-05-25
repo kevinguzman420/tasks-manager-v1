@@ -15,6 +15,7 @@ export interface Task {
 export interface MealConfig {
   at: string;       // "HH:mm"
   duration: number; // minutes
+  enabled?: boolean; // default true; false = skip this meal in the schedule
 }
 
 export interface Appointment {

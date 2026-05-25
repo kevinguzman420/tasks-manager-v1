@@ -52,11 +52,33 @@ function Stepper({
 export default function TaskDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { plan, schedule, replaceTask, addSubTask, removeSubTask, updateSubTask, reorderSubTasks } = usePlanner();
+  const {
+    plan, schedule, inbox,
+    replaceTask, replaceInboxTask,
+    addSubTask, removeSubTask, updateSubTask, reorderSubTasks,
+    addInboxSubTask, removeInboxSubTask, updateInboxSubTask, reorderInboxSubTasks,
+    moveTaskToDay,
+  } = usePlanner();
 
   const taskId = params.id as string;
-  const task = plan.tasks.find(t => t.id === taskId);
-  const taskEvent = schedule.events.find(e => e.kind === 'task' && e.id === taskId) as TaskEvent | undefined;
+  const taskFromPlan  = plan.tasks.find(t => t.id === taskId);
+  const taskFromInbox = inbox.find(t => t.id === taskId);
+  const task          = taskFromPlan ?? taskFromInbox;
+  const isInboxTask   = !taskFromPlan && !!taskFromInbox;
+  const taskEvent     = !isInboxTask
+    ? (schedule.events.find(e => e.kind === 'task' && e.id === taskId) as TaskEvent | undefined)
+    : undefined;
+
+  // Unified action helpers
+  const doReplaceTask = (t: typeof task) => {
+    if (!t) return;
+    if (isInboxTask) replaceInboxTask(taskId, t);
+    else replaceTask(taskId, t);
+  };
+  const doAddSubTask    = (name: string, dur: number) => isInboxTask ? addInboxSubTask(taskId, name, dur) : addSubTask(taskId, name, dur);
+  const doRemoveSubTask = (sid: string)                => isInboxTask ? removeInboxSubTask(taskId, sid)    : removeSubTask(taskId, sid);
+  const doUpdateSubTask = (sid: string, p: Partial<import('@/types').SubTask>) => isInboxTask ? updateInboxSubTask(taskId, sid, p) : updateSubTask(taskId, sid, p);
+  const doReorderSubs   = (subs: import('@/types').SubTask[])                  => isInboxTask ? reorderInboxSubTasks(taskId, subs)  : reorderSubTasks(taskId, subs);
 
   const [draftName, setDraftName] = useState('');
   const [draftHours, setDraftHours] = useState(0);
@@ -79,7 +101,7 @@ export default function TaskDetailPage() {
     }
   }, [task?.id]); // eslint-disable-line
 
-  if (!task || !taskEvent) {
+  if (!task) {
     return (
       <main style={{
         maxWidth: 880, margin: '0 auto', padding: '32px 28px 80px',
@@ -98,14 +120,14 @@ export default function TaskDetailPage() {
     );
   }
 
-  const startAt = taskEvent.startAt;
+  const startAt = taskEvent?.startAt ?? null;
 
   const addSub = (e?: React.FormEvent) => {
     e?.preventDefault();
     const dur = draftHours * 60 + draftMinutes;
     const nm = draftName.trim();
     if (!nm || dur <= 0) return;
-    addSubTask(taskId, nm, dur);
+    doAddSubTask(nm, dur);
     setDraftName('');
     setDraftHours(0);
     setDraftMinutes(15);
@@ -118,7 +140,7 @@ export default function TaskDetailPage() {
     const next = subtasks.map((s, i) => ({
       ...s, duration: each + (i === subtasks.length - 1 ? remainder : 0),
     }));
-    reorderSubTasks(taskId, next);
+    doReorderSubs(next);
   };
 
   const fillRemainderInLast = () => {
@@ -126,11 +148,11 @@ export default function TaskDetailPage() {
     const next = [...subtasks];
     const others = next.slice(0, -1).reduce((s, st) => s + st.duration, 0);
     next[next.length - 1] = { ...next[next.length - 1], duration: Math.max(5, task.duration - others) };
-    reorderSubTasks(taskId, next);
+    doReorderSubs(next);
   };
 
-  // Calculate clock for each subtask
-  let cursor = startAt;
+  // Calculate clock for each subtask (only when scheduled)
+  let cursor = startAt ?? 0;
   const subsWithClock = subtasks.map(s => {
     const st = cursor;
     cursor += s.duration;
@@ -157,7 +179,7 @@ export default function TaskDetailPage() {
       const next = [...subtasks];
       const [m] = next.splice(dragIdx, 1);
       next.splice(to, 0, m);
-      reorderSubTasks(taskId, next);
+      doReorderSubs(next);
     }
     resetDnd();
   };
@@ -191,9 +213,16 @@ export default function TaskDetailPage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 24, flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 280 }}>
             <div style={{ fontSize: 11, color: 'var(--muted)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Tarea</div>
+            {isInboxTask && (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 6,
+                background: 'var(--accent-soft)', border: '1px solid var(--accent)',
+                borderRadius: 999, padding: '3px 10px', fontSize: 11, color: 'var(--accent)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                📥 Bandeja de entrada (sin programar aún)
+              </div>
+            )}
             <input
               value={task.name}
-              onChange={e => replaceTask(taskId, { ...task, name: e.target.value })}
+              onChange={e => doReplaceTask({ ...task, name: e.target.value })}
               className="serif"
               style={{
                 width: '100%', border: 'none', outline: 'none', background: 'transparent',
@@ -201,10 +230,23 @@ export default function TaskDetailPage() {
                 fontFamily: 'inherit', fontWeight: 400, letterSpacing: '-0.015em', color: 'var(--ink)',
               }}
             />
-            <div style={{ display: 'flex', gap: 16, marginTop: 14, color: 'var(--muted)', fontSize: 13 }}>
+            <div style={{ display: 'flex', gap: 16, marginTop: 14, color: 'var(--muted)', fontSize: 13, flexWrap: 'wrap', alignItems: 'center' }}>
               <span className="mono">⏱ {fmtMinutes(task.duration)}</span>
-              <span style={{ color: 'var(--line)' }}>·</span>
-              <span className="mono">{minToClock(startAt)} → {minToClock(startAt + task.duration)}</span>
+              {startAt !== null && (
+                <>
+                  <span style={{ color: 'var(--line)' }}>·</span>
+                  <span className="mono">{minToClock(startAt)} → {minToClock(startAt + task.duration)}</span>
+                </>
+              )}
+              {isInboxTask && (
+                <button
+                  onClick={() => { moveTaskToDay(taskId); router.push('/'); }}
+                  style={{ background: 'var(--accent)', color: 'white', border: 'none', borderRadius: 999,
+                    padding: '5px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  → Agregar al día
+                </button>
+              )}
             </div>
           </div>
           <div style={{
@@ -368,28 +410,30 @@ export default function TaskDetailPage() {
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <input
                           value={s.name}
-                          onChange={e => updateSubTask(taskId, s.id, { name: e.target.value })}
+                          onChange={e => doUpdateSubTask(s.id, { name: e.target.value })}
                           style={{
                             border: 'none', background: 'transparent',
                             fontSize: 15, color: 'var(--ink)', padding: 0, fontWeight: 500, width: '100%',
                           }}
                         />
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
-                          <span className="mono" style={{ fontSize: 12, color: 'var(--ink-2)' }}>
-                            {minToClock(s.startAt)} → {minToClock(s.endAt)}
-                          </span>
-                        </div>
+                        {startAt !== null && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
+                            <span className="mono" style={{ fontSize: 12, color: 'var(--ink-2)' }}>
+                              {minToClock(s.startAt)} → {minToClock(s.endAt)}
+                            </span>
+                          </div>
+                        )}
                       </div>
                       <Stepper
                         value={s.duration}
-                        onChange={v => updateSubTask(taskId, s.id, { duration: Math.max(5, v) })}
+                        onChange={v => doUpdateSubTask(s.id, { duration: Math.max(5, v) })}
                         step={5}
                         min={5}
                         max={480}
                         suffix="min"
                       />
                       <button
-                        onClick={() => removeSubTask(taskId, s.id)}
+                        onClick={() => doRemoveSubTask(s.id)}
                         aria-label="Eliminar"
                         style={{
                           width: 28, height: 28, borderRadius: 8,

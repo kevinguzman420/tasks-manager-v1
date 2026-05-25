@@ -9,6 +9,8 @@ import { AppointmentSettings } from '@/components/planner/AppointmentSettings';
 import { RemainCard } from '@/components/planner/RemainCard';
 import { LiveBanner } from '@/components/planner/LiveBanner';
 import { Timeline } from '@/components/planner/Timeline';
+import { Inbox } from '@/components/planner/Inbox';
+import { FocusModeButton } from '@/components/planner/FocusMode';
 import { useRouter } from 'next/navigation';
 
 export default function Home() {
@@ -21,7 +23,9 @@ export default function Home() {
       <Calendar />
       <LiveBanner onOpenTask={id => router.push(`/task/${id}`)} />
       <Timeline />
+      <Inbox />
       <RemainCard />
+      <FocusModeButton />
 
       {/* Configurar día — collapsible */}
       <div className="flex flex-col gap-[16px]">

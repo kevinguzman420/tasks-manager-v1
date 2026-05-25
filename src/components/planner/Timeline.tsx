@@ -8,15 +8,10 @@ import {
   minToClock,
   fmtMinutes,
   timeToMin,
-  findConflict,
   dayMinutes,
 } from "@/utils/scheduler";
 import { ScheduleEvent, MealEvent, AppointmentEvent, TaskEvent } from "@/types";
 import { useRouter } from "next/navigation";
-import {
-  ConflictModal,
-  ConflictModalData,
-} from "@/components/planner/ConflictModal";
 import { useScheduleNotifications } from "@/hooks/useScheduleNotifications";
 
 function sameDay(a: Date, b: Date) {
@@ -40,6 +35,7 @@ export function Timeline() {
     today,
     toggleTaskDone,
     copyFromDay,
+    moveTaskToInbox,
   } = usePlanner();
   const { fixedConflicts } = schedule;
   const router = useRouter();
@@ -52,11 +48,6 @@ export function Timeline() {
 
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
-
-  const [conflictModal, setConflictModal] = useState<ConflictModalData | null>(
-    null,
-  );
-  const [pendingName, setPendingName] = useState<string | null>(null);
 
   const [nowMin, setNowMin] = useState<number | null>(null);
   useEffect(() => {
@@ -87,7 +78,7 @@ export function Timeline() {
 
   // Derived values
   const totalDay = dayMinutes(plan.start, plan.end);
-  const mealsMin = Object.values(plan.meals).reduce((s, m) => s + m.duration, 0);
+  const mealsMin = Object.values(plan.meals).filter(m => m.enabled !== false).reduce((s, m) => s + m.duration, 0);
   const apptMin  = plan.appointments.reduce((s, a) => s + a.duration, 0);
   const tasksMin = plan.tasks.reduce((s, t) => s + t.duration, 0);
   const freeMin  = Math.max(0, totalDay - mealsMin - apptMin - tasksMin);
@@ -143,7 +134,6 @@ export function Timeline() {
   const resetForm = () => {
     setName("");
     setDur(30);
-    setPendingName(null);
     inputRef.current?.focus();
   };
 
@@ -151,42 +141,12 @@ export function Timeline() {
     e?.preventDefault();
     const trimmed = name.trim();
     if (!trimmed) return;
-
-    const conflict = findConflict(plan, schedule.taskCursor, dur);
-    if (conflict) {
-      setPendingName(trimmed);
-      setConflictModal({
-        taskId: "",
-        taskName: trimmed,
-        taskStartAt: schedule.taskCursor,
-        stealMin: conflict.stealMin,
-        eventLabel: conflict.label,
-        eventKind: conflict.kind,
-        currentDuration: dur,
-      });
-      return;
-    }
-
     addTask(trimmed, dur);
     resetForm();
   };
 
   const addBreak = () => {
-    const conflict = findConflict(plan, schedule.taskCursor, 15);
-    if (conflict) {
-      setPendingName("Descanso");
-      setConflictModal({
-        taskId: "",
-        taskName: "Descanso",
-        taskStartAt: schedule.taskCursor,
-        stealMin: conflict.stealMin,
-        eventLabel: conflict.label,
-        eventKind: conflict.kind,
-        currentDuration: 15,
-      });
-    } else {
-      addTask("Descanso", 15);
-    }
+    addTask("Descanso", 15);
   };
 
   const events = schedule.events;
@@ -598,19 +558,14 @@ export function Timeline() {
                           {task.overlap && (
                             <>
                               <span className="text-(--line)">·</span>
-                              <button
-                                onClick={() => setConflictModal({
-                                  taskId: task.id,
-                                  taskName: task.name,
-                                  taskStartAt: task.startAt,
-                                  stealMin: task.overlap!.stealMin,
-                                  eventLabel: task.overlap!.label,
-                                  eventKind: task.overlap!.kind,
-                                  currentDuration: task.duration,
-                                })}
-                                className="rounded-full bg-(--accent-soft) text-(--warn) px-2 py-0.5 text-[11px] font-medium underline underline-offset-2 decoration-dotted cursor-pointer"
-                              >
+                              <span className="rounded-full bg-(--accent-soft) text-(--warn) px-2 py-0.5 text-[11px] font-medium">
                                 ⚠ roba {fmtMinutes(task.overlap.stealMin)} de {task.overlap.label}
+                              </span>
+                              <button
+                                onClick={() => updateTask(task.id, { duration: task.duration - task.overlap!.stealMin })}
+                                className="rounded-full border border-(--warn) text-(--warn) bg-transparent px-2 py-0.5 text-[11px] font-medium cursor-pointer hover:bg-(--accent-soft) transition-colors"
+                              >
+                                Ajustar
                               </button>
                             </>
                           )}
@@ -643,6 +598,12 @@ export function Timeline() {
                             <path d="M3 6h6 M6.5 3.5L9 6l-2.5 2.5" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
                         </button>
+                        <button
+                          onClick={() => moveTaskToInbox(task.id)}
+                          aria-label="Enviar a bandeja"
+                          title="Enviar a bandeja de entrada"
+                          className="w-7 h-7 rounded-[8px] bg-transparent text-[var(--muted)] border border-transparent text-[13px] flex items-center justify-center hover:text-[var(--ink-2)] transition-colors"
+                        >📥</button>
                         <button
                           onClick={() => removeTask(task.id)}
                           aria-label="Eliminar"
@@ -678,34 +639,6 @@ export function Timeline() {
         </ul>
       )}
 
-      {/* Modal de conflicto */}
-      {conflictModal && (
-        <ConflictModal
-          data={conflictModal}
-          mode={pendingName !== null ? "create" : "edit"}
-          onConfirm={(taskId, newDuration) => {
-            if (pendingName !== null) {
-              addTask(pendingName, newDuration);
-              resetForm();
-            } else {
-              updateTask(taskId, { duration: newDuration });
-            }
-            setConflictModal(null);
-          }}
-          onIgnore={() => {
-            if (pendingName !== null) {
-              addTask(pendingName, conflictModal.currentDuration);
-              resetForm();
-            }
-            setConflictModal(null);
-          }}
-          onCancel={() => {
-            setConflictModal(null);
-            setPendingName(null);
-            inputRef.current?.focus();
-          }}
-        />
-      )}
     </section>
   );
 }

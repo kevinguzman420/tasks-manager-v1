@@ -5,6 +5,7 @@ import { DayPlan, Plans, Task, SubTask, MealConfig, Appointment, Schedule } from
 import { computeSchedule } from '@/utils/scheduler';
 
 const STORAGE_KEY = 'designYourDay:v1';
+const INBOX_KEY   = 'designYourDay:inbox';
 
 const DEFAULT_PLAN: DayPlan = {
   start: '05:00',
@@ -72,6 +73,18 @@ interface PlannerContextType {
   reorderSubTasks: (taskId: string, newSubs: SubTask[]) => void;
   toggleTaskDone: (id: string) => void;
   copyFromDay: (sourceKey: string) => void;
+  // Inbox
+  inbox: Task[];
+  addInboxTask: (name: string, duration: number) => void;
+  removeInboxTask: (id: string) => void;
+  updateInboxTask: (id: string, patch: Partial<Task>) => void;
+  replaceInboxTask: (id: string, task: Task) => void;
+  moveTaskToDay: (id: string) => void;
+  moveTaskToInbox: (id: string) => void;
+  addInboxSubTask: (taskId: string, name: string, duration: number) => void;
+  removeInboxSubTask: (taskId: string, subId: string) => void;
+  updateInboxSubTask: (taskId: string, subId: string, patch: Partial<SubTask>) => void;
+  reorderInboxSubTasks: (taskId: string, newSubs: SubTask[]) => void;
 }
 
 const PlannerContext = createContext<PlannerContextType | undefined>(undefined);
@@ -91,11 +104,17 @@ export function PlannerProvider({ children }: { children: React.ReactNode }) {
   // ambas actualizaciones producen un solo re-render con los dos valores nuevos.
   const [initialized, setInitialized] = useState(false);
 
+  const [inbox, setInbox] = useState<Task[]>([]);
+
   // Leer localStorage solo tras montar (cliente), nunca en SSR
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) setPlans(JSON.parse(raw));
+    } catch {}
+    try {
+      const raw = localStorage.getItem(INBOX_KEY);
+      if (raw) setInbox(JSON.parse(raw));
     } catch {}
     setInitialized(true);
   }, []);
@@ -109,6 +128,13 @@ export function PlannerProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(plans));
     } catch {}
   }, [plans, initialized]);
+
+  useEffect(() => {
+    if (!initialized) return;
+    try {
+      localStorage.setItem(INBOX_KEY, JSON.stringify(inbox));
+    } catch {}
+  }, [inbox, initialized]);
 
   const plan = useMemo<DayPlan>(
     () => mergePlan(plans[selectedKey] ?? {}),
@@ -241,6 +267,75 @@ export function PlannerProvider({ children }: { children: React.ReactNode }) {
     updatePlan({ tasks: plan.tasks.map(t => t.id === id ? { ...t, done: !t.done } : t) });
   }, [plan.tasks, updatePlan]);
 
+  // ── Inbox ──────────────────────────────────────────────────────────────────
+
+  const addInboxTask = useCallback((name: string, duration: number) => {
+    const newTask: Task = {
+      id: `t-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      name,
+      duration,
+      subtasks: [],
+    };
+    setInbox(prev => [...prev, newTask]);
+  }, []);
+
+  const removeInboxTask = useCallback((id: string) => {
+    setInbox(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  const updateInboxTask = useCallback((id: string, patch: Partial<Task>) => {
+    setInbox(prev => prev.map(t => t.id === id ? { ...t, ...patch } : t));
+  }, []);
+
+  const replaceInboxTask = useCallback((id: string, task: Task) => {
+    setInbox(prev => prev.map(t => t.id === id ? task : t));
+  }, []);
+
+  const moveTaskToDay = useCallback((id: string) => {
+    const task = inbox.find(t => t.id === id);
+    if (!task) return;
+    setInbox(prev => prev.filter(t => t.id !== id));
+    updatePlan({ tasks: [...plan.tasks, { ...task, done: false }] });
+  }, [inbox, plan.tasks, updatePlan]);
+
+  const moveTaskToInbox = useCallback((id: string) => {
+    const task = plan.tasks.find(t => t.id === id);
+    if (!task) return;
+    updatePlan({ tasks: plan.tasks.filter(t => t.id !== id) });
+    setInbox(prev => [...prev, { ...task, done: false }]);
+  }, [plan.tasks, updatePlan]);
+
+  const addInboxSubTask = useCallback((taskId: string, name: string, duration: number) => {
+    const newSub: SubTask = {
+      id: `s-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      name,
+      duration,
+    };
+    setInbox(prev => prev.map(t =>
+      t.id === taskId ? { ...t, subtasks: [...t.subtasks, newSub] } : t
+    ));
+  }, []);
+
+  const removeInboxSubTask = useCallback((taskId: string, subId: string) => {
+    setInbox(prev => prev.map(t =>
+      t.id === taskId ? { ...t, subtasks: t.subtasks.filter(s => s.id !== subId) } : t
+    ));
+  }, []);
+
+  const updateInboxSubTask = useCallback((taskId: string, subId: string, patch: Partial<SubTask>) => {
+    setInbox(prev => prev.map(t =>
+      t.id === taskId
+        ? { ...t, subtasks: t.subtasks.map(s => s.id === subId ? { ...s, ...patch } : s) }
+        : t
+    ));
+  }, []);
+
+  const reorderInboxSubTasks = useCallback((taskId: string, newSubs: SubTask[]) => {
+    setInbox(prev => prev.map(t => t.id === taskId ? { ...t, subtasks: newSubs } : t));
+  }, []);
+
+  // ── Copy from day ──────────────────────────────────────────────────────────
+
   const copyFromDay = useCallback((sourceKey: string) => {
     const source = plans[sourceKey];
     if (!source?.tasks?.length) return;
@@ -267,6 +362,10 @@ export function PlannerProvider({ children }: { children: React.ReactNode }) {
       addAppointment, removeAppointment, updateAppointment,
       addSubTask, removeSubTask, updateSubTask, reorderSubTasks,
       toggleTaskDone, copyFromDay,
+      inbox,
+      addInboxTask, removeInboxTask, updateInboxTask, replaceInboxTask,
+      moveTaskToDay, moveTaskToInbox,
+      addInboxSubTask, removeInboxSubTask, updateInboxSubTask, reorderInboxSubTasks,
     }}>
       {children}
     </PlannerContext.Provider>

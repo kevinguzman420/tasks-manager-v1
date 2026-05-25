@@ -56,35 +56,53 @@ function MealCard({ label, emoji, meal, onChange }: {
   meal: MealConfig;
   onChange: (patch: Partial<MealConfig>) => void;
 }) {
+  const enabled = meal.enabled !== false;
   return (
-    <div className="bg-[var(--bg)] border border-[var(--line)] rounded-[14px] p-4 flex flex-col gap-3">
-      <div className="flex items-center gap-2">
-        <span className="text-[20px]">{emoji}</span>
-        <span className="text-[14px] font-[500]">{label}</span>
+    <div className={`bg-[var(--bg)] border rounded-[14px] p-4 flex flex-col gap-3 transition-opacity ${enabled ? 'border-[var(--line)]' : 'border-[var(--line)] opacity-50'}`}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-[20px]">{emoji}</span>
+          <span className={`text-[14px] font-[500] ${enabled ? 'text-[var(--ink)]' : 'text-[var(--muted)] line-through'}`}>{label}</span>
+        </div>
+        {/* Toggle habilitado/deshabilitado */}
+        <button
+          type="button"
+          onClick={() => onChange({ enabled: !enabled })}
+          aria-label={enabled ? 'Desactivar comida' : 'Activar comida'}
+          className={`relative inline-flex h-5 w-9 items-center rounded-full border transition-colors flex-shrink-0 ${
+            enabled
+              ? 'bg-[var(--accent)] border-[var(--accent)]'
+              : 'bg-[var(--bg-2)] border-[var(--line)]'
+          }`}
+        >
+          <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${enabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+        </button>
       </div>
 
-      {/* En móvil: hora y duración en fila; en sm: columna */}
-      <div className="flex sm:flex-col gap-3">
-        <div className="flex-1">
-          <div className="text-[11px] text-[var(--muted)] tracking-[0.06em] uppercase mb-1">Hora</div>
-          <input
-            type="time"
-            value={meal.at}
-            onChange={e => onChange({ at: e.target.value })}
-            className="mono appearance-none bg-[var(--card-bg)] border border-[var(--line)] rounded-[10px] px-3 py-2.5 text-[15px] text-[var(--ink)] w-full"
-          />
+      {enabled && (
+        /* En móvil: hora y duración en fila; en sm: columna */
+        <div className="flex sm:flex-col gap-3">
+          <div className="flex-1">
+            <div className="text-[11px] text-[var(--muted)] tracking-[0.06em] uppercase mb-1">Hora</div>
+            <input
+              type="time"
+              value={meal.at}
+              onChange={e => onChange({ at: e.target.value })}
+              className="mono appearance-none bg-[var(--card-bg)] border border-[var(--line)] rounded-[10px] px-3 py-2.5 text-[15px] text-[var(--ink)] w-full"
+            />
+          </div>
+          <div className="flex-1">
+            <div className="text-[11px] text-[var(--muted)] tracking-[0.06em] uppercase mb-1">Duración</div>
+            <DurationStepper
+              value={meal.duration}
+              onChange={v => onChange({ duration: v })}
+              step={5}
+              min={0}
+              max={180}
+            />
+          </div>
         </div>
-        <div className="flex-1">
-          <div className="text-[11px] text-[var(--muted)] tracking-[0.06em] uppercase mb-1">Duración</div>
-          <DurationStepper
-            value={meal.duration}
-            onChange={v => onChange({ duration: v })}
-            step={5}
-            min={0}
-            max={180}
-          />
-        </div>
-      </div>
+      )}
     </div>
   );
 }
