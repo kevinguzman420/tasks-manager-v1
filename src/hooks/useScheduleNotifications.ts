@@ -15,32 +15,62 @@ function buildNotification(ev: ScheduleEvent): { title: string; body: string } {
 }
 
 /**
+ * Envía una notificación usando el Service Worker si está disponible
+ * (necesario en PWA/Android), o la API estándar como fallback.
+ */
+async function showNotif(title: string, options: NotificationOptions): Promise<void> {
+  // En modo PWA la API new Notification() puede fallar — preferir SW
+  if ('serviceWorker' in navigator) {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      await reg.showNotification(title, options);
+      return;
+    } catch { /* fallthrough al método estándar */ }
+  }
+  try { new Notification(title, options); } catch { /* ignorar silenciosamente */ }
+}
+
+/** Verifica si hay permiso de notificación, compatible con todos los browsers. */
+export function getNotifPermission(): NotificationPermission | null {
+  if (typeof window === 'undefined') return null;
+  if ('Notification' in window) return Notification.permission;
+  return null;
+}
+
+/** Solicita permiso de notificación. */
+export async function requestNotifPermission(): Promise<NotificationPermission | null> {
+  if (typeof window === 'undefined' || !('Notification' in window)) return null;
+  const perm = await Notification.requestPermission();
+  return perm;
+}
+
+/**
  * Dispara una notificación de prueba de inmediato para que el usuario
  * pueda ver cómo se ve. Usa el primer evento futuro del schedule si existe,
  * o un ejemplo genérico si no hay ninguno.
  */
-export function fireTestNotification(schedule?: Schedule): void {
-  if (typeof window === 'undefined' || !('Notification' in window)) return;
+export async function fireTestNotification(schedule?: Schedule): Promise<void> {
+  if (typeof window === 'undefined') return;
+  if (!('Notification' in window) && !('serviceWorker' in navigator)) return;
   if (Notification.permission !== 'granted') return;
 
   const d      = new Date();
   const nowMin = d.getHours() * 60 + d.getMinutes();
 
-  // Intentar usar el próximo evento real como ejemplo
+  // Usar el próximo evento real como ejemplo, o datos ficticios
   const nextEv = schedule?.events.find(ev => ev.startAt > nowMin);
 
   const title = nextEv ? buildNotification(nextEv).title : '⏱ Sesión de trabajo';
   const body  = nextEv
     ? `Empieza a las ${String(Math.floor(nextEv.startAt / 60)).padStart(2,'0')}:${String(nextEv.startAt % 60).padStart(2,'0')} · ${fmtMinutes(nextEv.duration)}`
-    : 'Así se verán los avisos del Planeador cuando empiece un evento 📋';
+    : 'Así se verán los avisos cuando empiece un evento 📋';
 
-  try {
-    new Notification(title, {
-      body,
-      icon: '/icons/icon.svg',
-      tag: 'diario-planeador-test',
-    });
-  } catch { /* browser puede bloquear */ }
+  await showNotif(title, {
+    body,
+    icon: '/icons/icon.svg',
+    badge: '/icons/icon.svg',
+    tag: 'diario-planeador-test',
+  });
 }
 
 /**
@@ -98,15 +128,13 @@ export function useScheduleNotifications(
         if (ev.startAt <= nowMin && !notifiedRef.current.has(key)) {
           notifiedRef.current.add(key);
           const { title, body } = buildNotification(ev);
-          try {
-            new Notification(title, {
-              body,
-              icon: '/favicon.ico',
-              tag: `diario-planeador-${key}`,
-            });
-          } catch {
-            // El browser puede bloquear la notificación — ignorar silenciosamente
-          }
+          // fire-and-forget (no await en setInterval)
+          showNotif(title, {
+            body,
+            icon: '/icons/icon.svg',
+            badge: '/icons/icon.svg',
+            tag: `diario-planeador-${key}`,
+          });
         }
       });
     };

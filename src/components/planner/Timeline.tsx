@@ -12,7 +12,12 @@ import {
 } from "@/utils/scheduler";
 import { ScheduleEvent, MealEvent, AppointmentEvent, TaskEvent } from "@/types";
 import { useRouter } from "next/navigation";
-import { useScheduleNotifications, fireTestNotification } from "@/hooks/useScheduleNotifications";
+import {
+  useScheduleNotifications,
+  fireTestNotification,
+  getNotifPermission,
+  requestNotifPermission,
+} from "@/hooks/useScheduleNotifications";
 
 function sameDay(a: Date, b: Date) {
   return (
@@ -67,12 +72,11 @@ export function Timeline() {
   // Notificaciones del sistema
   const [notifPerm, setNotifPerm] = useState<NotificationPermission | null>(null);
   useEffect(() => {
-    if ('Notification' in window) setNotifPerm(Notification.permission);
+    setNotifPerm(getNotifPermission());
   }, []);
   const requestNotifPerm = async () => {
-    if (!('Notification' in window)) return;
-    const perm = await Notification.requestPermission();
-    setNotifPerm(perm);
+    const perm = await requestNotifPermission();
+    if (perm) setNotifPerm(perm);
   };
   useScheduleNotifications(schedule, isToday, selectedDate);
 
