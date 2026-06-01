@@ -185,15 +185,6 @@ export function computeSchedule(plan: DayPlan, nowMin?: number): Schedule {
     }
   };
 
-  // ── "Now floor": evitar colocar tareas en el pasado ─────────────────────────
-  // Si nowMin está definido (vista de hoy), primero vaciamos los eventos fijos
-  // que ya ocurrieron (quedan en su hora real) y luego adelantamos el cursor
-  // al momento actual, para que las tareas pendientes partan desde ahora.
-  if (nowMin !== undefined) {
-    flushFixed(nowMin);          // fijos pasados → aparecen a su hora configurada
-    c = Math.max(c, nowMin);     // cursor nunca retrocede al pasado
-  }
-
   for (const task of tasks) {
     flushFixed(c);
 
@@ -217,8 +208,15 @@ export function computeSchedule(plan: DayPlan, nowMin?: number): Schedule {
     c += task.duration || 0;
   }
 
-  // Guardamos el cursor justo después de la última tarea.
-  // Este es el punto real donde arrancaría una nueva tarea.
+  // "Now floor" solo para día vacío: si no hay tareas y es hoy, la próxima
+  // tarea parte desde ahora (no desde el inicio del día en el pasado).
+  // Con tareas existentes NO se aplica, para no desplazar el plan del usuario.
+  if (tasks.length === 0 && nowMin !== undefined) {
+    flushFixed(nowMin);
+    c = Math.max(c, nowMin);
+  }
+
+  // Cursor tras la última tarea = punto de inicio de la siguiente.
   const taskCursor = c;
 
   // Vaciamos los eventos fijos que quedaron después de las tareas

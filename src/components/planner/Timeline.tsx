@@ -456,6 +456,7 @@ export function Timeline() {
                 const overflow = task.endAt > sleepStart;
                 const isDragging = dragIndex === taskIdx;
                 const isNow = task.id === currentEventId;
+                const isEditing = editingId === task.id;
                 const isPast =
                   nowMin !== null &&
                   task.endAt <=
@@ -493,8 +494,8 @@ export function Timeline() {
                       task.overlap && !isNow ? "border border-[var(--accent)]"
                         : !isNow ? "border border-[var(--line)]" : "",
                       isDragging && "opacity-[0.35] scale-[0.99]",
-                      isPast && !isDragging && "opacity-[0.55]",
-                      task.done && "opacity-60",
+                      isPast && !isDragging && !isEditing && "opacity-[0.55]",
+                      task.done && !isEditing && "opacity-60",
                     )}
                     onDragOver={(e) => handleDragOverTask(e, taskIdx)}
                   >
@@ -710,95 +711,67 @@ function DurationEditor({
   onChange: (dur: number) => void;
   onClose: () => void;
 }) {
-  const [hh, setHh] = useState(Math.floor(ev.duration / 60));
-  const [mm, setMm] = useState(ev.duration % 60);
+  // Local copy so the stepper feels snappy even if context update is async
+  const [dur, setDur] = useState(ev.duration);
 
-  useEffect(() => {
-    setHh(Math.floor(ev.duration / 60));
-    setMm(ev.duration % 60);
-  }, [ev.duration]);
+  useEffect(() => { setDur(ev.duration); }, [ev.duration]);
 
-  const apply = (newH: number, newM: number) => {
-    const total = Math.max(5, newH * 60 + newM);
-    setHh(newH);
-    setMm(newM);
-    onChange(total);
+  const handleChange = (v: number) => {
+    setDur(v);
+    onChange(v);
   };
 
-  const handleEndChange = (val: string) => {
-    if (!val) return;
-    const [h, m] = val.split(":").map(Number);
-    let endMin = h * 60 + m;
-    if (endMin <= ev.startAt % 1440) endMin += 1440;
-    const newDur = Math.max(5, endMin - (ev.startAt % 1440));
-    onChange(newDur);
-  };
-
-  const endTimeValue = (() => {
-    const e = ev.endAt % 1440;
-    return `${String(Math.floor(e / 60)).padStart(2, "0")}:${String(e % 60).padStart(2, "0")}`;
-  })();
+  const endMin = ev.startAt + dur;
 
   return (
-    <div className="mt-[10px] p-[10px] xs:p-[14px] rounded-[12px] bg-[var(--card-bg)] border border-[var(--line)] flex flex-col gap-[12px] xs:gap-[14px]">
-      <div className="flex flex-row items-center gap-[8px] sm:gap-[16px]">
-        <div className="flex-1 min-w-0">
-          <div className="text-[10px] text-[var(--muted)] tracking-[0.06em] uppercase mb-[4px]">
-            Inicia
-          </div>
-          <div className="mono text-[14px] xs:text-[16px] text-[var(--muted)] p-[8px_10px] xs:p-[9px_12px] border border-dashed border-[var(--line)] rounded-[10px] bg-[var(--bg)] text-center">
+    <div className="mt-[10px] p-[12px] rounded-[12px] bg-[var(--bg)] border border-[var(--line)] flex flex-col gap-[10px]">
+
+      {/* Inicio → Fin */}
+      <div className="flex items-stretch gap-[8px]">
+        <div className="flex-1 flex flex-col items-center gap-[3px]">
+          <span className="text-[9px] text-[var(--muted)] tracking-[0.07em] uppercase">Inicia</span>
+          <div className="w-full mono text-[14px] text-[var(--muted)] border border-dashed border-[var(--line)] rounded-[9px] py-[8px] bg-[var(--card-bg)] text-center">
             {minToClock(ev.startAt)}
           </div>
-          <div className="text-[9px] xs:text-[10px] text-[var(--muted)] mt-[2px] text-center truncate">
-            depende del orden
-          </div>
+          <span className="text-[9px] text-[var(--muted)] text-center leading-[1.3]">depende del orden</span>
         </div>
-        <div className="text-[16px] xs:text-[18px] text-[var(--muted)] self-center pt-[18px]">→</div>
-        <div className="flex-1 min-w-0">
-          <div className="text-[10px] text-[var(--muted)] tracking-[0.06em] uppercase mb-[4px]">
-            Termina
+
+        <div className="flex items-center pb-[18px] text-[var(--muted)] text-[14px]">→</div>
+
+        <div className="flex-1 flex flex-col items-center gap-[3px]">
+          <span className="text-[9px] text-[var(--muted)] tracking-[0.07em] uppercase">Termina</span>
+          <div className="w-full mono text-[14px] font-[500] text-[var(--ink)] border border-[var(--line)] rounded-[9px] py-[8px] bg-[var(--card-bg)] text-center">
+            {minToClock(endMin)}
           </div>
-          <input
-            type="time"
-            value={endTimeValue}
-            onChange={(e) => handleEndChange(e.target.value)}
-            className="mono w-full text-center appearance-none bg-[var(--bg)] border border-[var(--line)] rounded-[10px] px-[8px] xs:px-[12px] py-[8px] xs:py-[10px] text-[14px] xs:text-[16px] text-[var(--ink)] outline-none"
-          />
+          <span className="text-[9px] text-[var(--muted)] text-center leading-[1.3]">
+            {dur !== ev.duration
+              ? (dur > ev.duration ? `+${fmtMinutes(dur - ev.duration)}` : `−${fmtMinutes(ev.duration - dur)}`)
+              : ' '}
+          </span>
         </div>
       </div>
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-[14px]">
-        <div className="flex-1 w-full">
-          <div className="text-[10px] text-[var(--muted)] tracking-[0.06em] uppercase mb-[6px]">
-            Duración
-          </div>
-          <div className="flex gap-[8px] w-full">
-            <Stepper
-              value={hh}
-              onChange={(v) => apply(v, mm)}
-              step={1}
-              min={0}
-              max={12}
-              suffix="h"
-              className="flex-1 w-full"
-            />
-            <Stepper
-              value={mm}
-              onChange={(v) => apply(hh, v)}
-              step={5}
-              min={0}
-              max={55}
-              suffix="min"
-              className="flex-1 w-full"
-            />
-          </div>
-        </div>
-        <button
-          onClick={onClose}
-          className="w-full sm:w-auto rounded-[10px] bg-[var(--ink)] text-[var(--bg)] px-[18px] py-[10px] text-[13px] font-[500] h-[40px] flex items-center justify-center cursor-pointer hover:opacity-90 active:scale-[0.98] transition-all"
-        >
-          Listo
-        </button>
+
+      {/* Stepper de duración */}
+      <div className="flex flex-col gap-[4px]">
+        <span className="text-[9px] text-[var(--muted)] tracking-[0.07em] uppercase">Duración</span>
+        <Stepper
+          value={dur}
+          onChange={handleChange}
+          step={5}
+          min={5}
+          max={480}
+          format={fmtMinutes}
+          className="w-full"
+        />
       </div>
+
+      {/* Botón Listo */}
+      <button
+        onClick={onClose}
+        className="w-full rounded-[10px] bg-[var(--ink)] text-[var(--bg)] py-[10px] text-[13px] font-[500] flex items-center justify-center cursor-pointer hover:opacity-90 active:scale-[0.98] transition-all"
+      >
+        Listo
+      </button>
     </div>
   );
 }
