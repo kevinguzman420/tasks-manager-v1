@@ -33,6 +33,7 @@ export function Timeline() {
     plans,
     schedule,
     addTask,
+    insertTaskAfter,
     removeTask,
     updateTask,
     reorderTasks,
@@ -49,6 +50,7 @@ export function Timeline() {
   const [name, setName] = useState("");
   const [dur, setDur] = useState(30);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [insertAfterId, setInsertAfterId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -627,9 +629,20 @@ export function Timeline() {
                   </li>,
                 );
 
+                // Insert-between row (always shown after each task)
+                out.push(
+                  <InsertRow
+                    key={`insert-${task.id}`}
+                    active={insertAfterId === task.id}
+                    onOpen={() => { setInsertAfterId(task.id); setEditingId(null); }}
+                    onClose={() => setInsertAfterId(null)}
+                    onSubmit={(n, d) => { insertTaskAfter(task.id, n, d); setInsertAfterId(null); }}
+                  />
+                );
+
                 // Free time gap between this event and the next
                 const nextEv = events[i + 1];
-                if (nextEv) {
+                if (nextEv && insertAfterId !== task.id) {
                   const gap = nextEv.startAt - ev.endAt;
                   if (gap >= 10) {
                     out.push(
@@ -773,6 +786,85 @@ function DurationEditor({
         Listo
       </button>
     </div>
+  );
+}
+
+function InsertRow({
+  active,
+  onOpen,
+  onClose,
+  onSubmit,
+}: {
+  active: boolean;
+  onOpen: () => void;
+  onClose: () => void;
+  onSubmit: (name: string, dur: number) => void;
+}) {
+  const [name, setName] = useState('');
+  const [dur, setDur] = useState(30);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (active) inputRef.current?.focus();
+  }, [active]);
+
+  if (!active) {
+    return (
+      <li className="group flex items-center gap-2 h-5 -my-0.5 relative z-10">
+        <div className="flex-1 h-px bg-transparent group-hover:bg-[var(--line)] transition-colors" />
+        <button
+          onClick={onOpen}
+          aria-label="Insertar tarea aquí"
+          className="opacity-0 group-hover:opacity-100 w-5 h-5 rounded-full border border-[var(--line)] bg-[var(--card-bg)] text-[var(--muted)] text-[13px] leading-none flex items-center justify-center hover:border-[var(--accent)] hover:text-[var(--accent)] transition-all"
+        >+</button>
+        <div className="flex-1 h-px bg-transparent group-hover:bg-[var(--line)] transition-colors" />
+      </li>
+    );
+  }
+
+  return (
+    <li className="rounded-[12px] border border-[var(--accent)] bg-[var(--accent-soft)] p-[12px]">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          const trimmed = name.trim();
+          if (!trimmed) return;
+          onSubmit(trimmed, dur);
+          setName('');
+          setDur(30);
+        }}
+        className="flex flex-col gap-[10px]"
+      >
+        <input
+          ref={inputRef}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Nombre de la tarea..."
+          className="border-none bg-transparent text-[15px] text-[var(--ink)] p-0 outline-none w-full placeholder:text-[var(--muted)]"
+        />
+        <div className="flex flex-wrap items-center justify-between gap-[8px]">
+          <Stepper
+            value={dur}
+            onChange={setDur}
+            step={5}
+            min={5}
+            max={480}
+            format={fmtMinutes}
+          />
+          <div className="flex items-center gap-[8px]">
+            <button
+              type="button"
+              onClick={() => { onClose(); setName(''); setDur(30); }}
+              className="text-[13px] text-[var(--muted)] px-[10px] py-[6px] hover:text-[var(--ink-2)] transition-colors"
+            >Cancelar</button>
+            <button
+              type="submit"
+              className="rounded-[10px] bg-[var(--ink)] text-[var(--bg)] px-[14px] py-[8px] text-[13px] font-[500] hover:opacity-90 active:scale-[0.98] transition-all"
+            >＋ Insertar</button>
+          </div>
+        </div>
+      </form>
+    </li>
   );
 }
 

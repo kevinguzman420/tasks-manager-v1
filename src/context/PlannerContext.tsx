@@ -56,6 +56,7 @@ interface PlannerContextType {
   clearAll: () => void;
   // Task actions
   addTask: (name: string, duration: number) => void;
+  insertTaskAfter: (afterId: string, name: string, duration: number) => void;
   removeTask: (id: string) => void;
   updateTask: (id: string, patch: Partial<Task>) => void;
   reorderTasks: (from: number, to: number) => void;
@@ -183,6 +184,19 @@ export function PlannerProvider({ children }: { children: React.ReactNode }) {
       subtasks: [],
     };
     updatePlan({ tasks: [...plan.tasks, newTask] });
+  }, [plan.tasks, updatePlan]);
+
+  const insertTaskAfter = useCallback((afterId: string, name: string, duration: number) => {
+    const idx = plan.tasks.findIndex(t => t.id === afterId);
+    const newTask: Task = {
+      id: `t-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      name,
+      duration,
+      subtasks: [],
+    };
+    const next = [...plan.tasks];
+    next.splice(idx + 1, 0, newTask);
+    updatePlan({ tasks: next });
   }, [plan.tasks, updatePlan]);
 
   const removeTask = useCallback((id: string) => {
@@ -368,7 +382,7 @@ export function PlannerProvider({ children }: { children: React.ReactNode }) {
       plan, plans, schedule,
       selectedDate, today,
       updatePlan, resetDay, clearAll,
-      addTask, removeTask, updateTask, reorderTasks, replaceTask,
+      addTask, insertTaskAfter, removeTask, updateTask, reorderTasks, replaceTask,
       updateMeal,
       addAppointment, removeAppointment, updateAppointment,
       addSubTask, removeSubTask, updateSubTask, reorderSubTasks,
